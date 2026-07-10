@@ -9,6 +9,14 @@ import { LiveTVService } from './livetv.service';
 const app = express();
 const PORT = process.env.PORT || 3002;
 
+app.set('trust proxy', true);
+
+const getBaseUrl = (req: express.Request): string => {
+    const host = req.headers.host || `localhost:${PORT}`;
+    const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'http';
+    return `${protocol}://${host}`;
+};
+
 app.use(cors());
 app.use(express.json());
 
@@ -233,7 +241,7 @@ app.get('/api/zee5/stream', async (req, res) => {
                         }
                         const absUrl = new URL(relUrl, baseUrl).href;
                         const finalUrl = absUrl.includes('?') ? absUrl : absUrl + searchParams;
-                        return `URI="http://localhost:${PORT}/api/zee5/stream?url=${encodeURIComponent(finalUrl)}"`;
+                        return `URI="${getBaseUrl(req)}/api/zee5/stream?url=${encodeURIComponent(finalUrl)}"`;
                     });
                 }
 
@@ -241,7 +249,7 @@ app.get('/api/zee5/stream', async (req, res) => {
                 if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://') && !trimmed.startsWith('data:')) {
                     const absUrl = new URL(trimmed, baseUrl).href;
                     const finalUrl = absUrl.includes('?') ? absUrl : absUrl + searchParams;
-                    return `http://localhost:${PORT}/api/zee5/stream?url=${encodeURIComponent(finalUrl)}`;
+                    return `${getBaseUrl(req)}/api/zee5/stream?url=${encodeURIComponent(finalUrl)}`;
                 }
 
                 return line;
@@ -372,7 +380,7 @@ app.get('/api/livetv/resolve', async (req, res) => {
         // Return the proxied HLS URL so the frontend can play directly
         res.json({
             ...resolved,
-            proxiedHlsUrl: `http://localhost:${PORT}/api/livetv/stream?url=${encodeURIComponent(resolved.hlsUrl)}`,
+            proxiedHlsUrl: `${getBaseUrl(req)}/api/livetv/stream?url=${encodeURIComponent(resolved.hlsUrl)}`,
         });
     } catch (error) {
         console.error('[API] LiveTV resolve error:', error);
@@ -429,7 +437,7 @@ app.get('/api/livetv/stream', async (req, res) => {
                 // Relative .ts segment URLs
                 if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
                     const absUrl = new URL(trimmed, baseUrl).href;
-                    return `http://localhost:${PORT}/api/livetv/stream?url=${encodeURIComponent(absUrl)}`;
+                    return `${getBaseUrl(req)}/api/livetv/stream?url=${encodeURIComponent(absUrl)}`;
                 }
                 return line;
             });
