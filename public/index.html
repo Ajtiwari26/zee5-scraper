@@ -1,0 +1,1711 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FIFA World Cup Stream Portal</title>
+    
+    <!-- Meta tags for SEO -->
+    <meta name="description" content="A premium FIFA World Cup stream portal with live content, fingerprint rotation, and manifest extraction.">
+    <meta name="color-scheme" content="dark">
+    
+    <!-- Premium Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- Shaka Player for DRM Widevine and HLS/DASH playback -->
+    <script src="https://ajax.googleapis.com/ajax/libs/shaka-player/4.8.9/shaka-player.compiled.js"></script>
+
+    <style>
+        :root {
+            --bg-base: #06050b;
+            --bg-surface: #0f0d19;
+            --bg-surface-glass: rgba(15, 13, 25, 0.7);
+            --border-color: rgba(255, 255, 255, 0.08);
+            --border-glow: rgba(139, 92, 246, 0.4);
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #475569;
+            --accent-primary: #8b5cf6;
+            --accent-secondary: #ec4899;
+            --accent-orange: #f43f5e;
+            --accent-success: #10b981;
+            --accent-warning: #f59e0b;
+            --zee5-gradient: linear-gradient(90deg, #ec4899 0%, #8b5cf6 50%, #f43f5e 100%);
+            --glow-shadow: 0 0 25px rgba(139, 92, 246, 0.25);
+            --font-display: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            --font-body: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background-color: var(--bg-base);
+            color: var(--text-primary);
+            font-family: var(--font-body);
+            min-height: 100vh;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+            background-image: 
+                radial-gradient(circle at 0% 0%, rgba(236, 72, 153, 0.07) 0%, transparent 50%),
+                radial-gradient(circle at 100% 100%, rgba(139, 92, 246, 0.07) 0%, transparent 50%);
+            scrollbar-gutter: stable;
+        }
+
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: rgba(6, 5, 11, 0.6); }
+        ::-webkit-scrollbar-thumb { background: rgba(139, 92, 246, 0.3); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(139, 92, 246, 0.6); }
+
+        /* ── Header ────────────────────────────────────────────────────────── */
+        header {
+            position: fixed; top: 0; left: 0; width: 100%; height: 70px;
+            background: rgba(6, 5, 11, 0.85);
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border-color);
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 3.5rem; z-index: 100; transition: background 0.3s;
+        }
+        header.scrolled { background: var(--bg-base); }
+        .nav-left { display: flex; align-items: center; gap: 2.5rem; }
+        .logo {
+            font-family: var(--font-display); font-size: 1.8rem; font-weight: 900;
+            letter-spacing: -1px; background: var(--zee5-gradient);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            cursor: pointer; display: flex; align-items: center; gap: 0.25rem;
+        }
+        .logo span {
+            font-weight: 400; font-size: 0.8rem; letter-spacing: 2px;
+            color: var(--text-secondary); border: 1px solid var(--border-color);
+            padding: 2px 6px; border-radius: 4px; margin-left: 0.5rem;
+            text-transform: uppercase; -webkit-text-fill-color: var(--text-secondary);
+        }
+        nav { display: flex; align-items: center; gap: 1.5rem; }
+        nav a { color: var(--text-secondary); text-decoration: none; font-size: 0.9rem; font-weight: 500; transition: color 0.2s; }
+        nav a:hover, nav a.active { color: white; }
+        .nav-right { display: flex; align-items: center; gap: 1.25rem; }
+
+        /* ── Search ────────────────────────────────────────────────────────── */
+        .search-container { position: relative; display: flex; align-items: center; }
+        .search-bar {
+            background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color);
+            border-radius: 20px; padding: 0.45rem 1rem 0.45rem 2.25rem;
+            color: white; font-size: 0.85rem; font-family: var(--font-body);
+            outline: none; width: 240px; transition: all 0.3s ease;
+        }
+        .search-bar:focus {
+            background: rgba(255, 255, 255, 0.1); border-color: var(--accent-primary);
+            width: 320px; box-shadow: 0 0 10px rgba(139, 92, 246, 0.2);
+        }
+        .search-container i {
+            position: absolute; left: 0.85rem; color: var(--text-secondary);
+            font-size: 14px; pointer-events: none;
+        }
+
+        /* ── Buttons ───────────────────────────────────────────────────────── */
+        .btn {
+            background: linear-gradient(135deg, var(--accent-secondary) 0%, var(--accent-primary) 100%);
+            color: white; border: none; padding: 0.5rem 1.2rem; border-radius: 20px;
+            font-family: var(--font-display); font-weight: 600; font-size: 0.85rem;
+            cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 12px rgba(236, 72, 153, 0.2);
+        }
+        .btn:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(236, 72, 153, 0.35); }
+        .btn-outline {
+            background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color);
+            color: white; box-shadow: none;
+        }
+        .btn-outline:hover { background: rgba(255, 255, 255, 0.1); border-color: var(--text-secondary); box-shadow: none; }
+
+        .status-badge {
+            background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.25);
+            color: var(--accent-success); padding: 0.3rem 0.75rem; border-radius: 99px;
+            font-size: 0.75rem; font-weight: 600; display: flex; align-items: center; gap: 0.35rem;
+        }
+        .status-pulse {
+            width: 8px; height: 8px; background-color: var(--accent-success);
+            border-radius: 50%; display: inline-block;
+            box-shadow: 0 0 8px var(--accent-success); animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+
+        /* ── Main Layout ───────────────────────────────────────────────────── */
+        main {
+            margin-top: 70px; flex-grow: 1; display: flex;
+            flex-direction: column; gap: 2.5rem; padding-bottom: 4rem;
+        }
+
+        /* ── Hero Slider ───────────────────────────────────────────────────── */
+        .hero-slider { position: relative; height: 60vh; width: 100%; overflow: hidden; background: #000; }
+        .hero-slide { position: absolute; inset: 0; opacity: 0; transition: opacity 0.8s ease-in-out; pointer-events: none; }
+        .hero-slide.active { opacity: 1; pointer-events: auto; }
+        .hero-backdrop { width: 100%; height: 100%; object-fit: cover; opacity: 0.55; transform: scale(1.05); transition: transform 6s ease; }
+        .hero-slide.active .hero-backdrop { transform: scale(1); }
+        .hero-overlay {
+            position: absolute; inset: 0;
+            background: linear-gradient(to right, rgba(6, 5, 11, 0.95) 20%, rgba(6, 5, 11, 0.6) 50%, transparent 100%),
+                        linear-gradient(to top, rgba(6, 5, 11, 1) 0%, rgba(6, 5, 11, 0.2) 50%, transparent 100%);
+            display: flex; flex-direction: column; justify-content: center;
+            padding: 0 5rem; color: white;
+        }
+        .hero-meta { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; font-size: 0.8rem; font-weight: 600; letter-spacing: 0.5px; color: var(--text-secondary); }
+        .hero-badge { background: var(--zee5-gradient); padding: 0.2rem 0.6rem; border-radius: 4px; color: white; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; }
+        .hero-title {
+            font-family: var(--font-display); font-size: 3rem; font-weight: 850;
+            line-height: 1.15; max-width: 600px; margin-bottom: 1rem; letter-spacing: -1px;
+            background: linear-gradient(135deg, #ffffff 0%, #e2e8f0 100%);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        .hero-description { font-size: 0.95rem; line-height: 1.5; color: var(--text-secondary); max-width: 550px; margin-bottom: 2rem; }
+        .hero-actions { display: flex; align-items: center; gap: 1rem; }
+
+        .hero-arrow {
+            position: absolute; top: 50%; transform: translateY(-50%);
+            width: 50px; height: 50px; border-radius: 50%;
+            background: rgba(15, 13, 25, 0.5); border: 1px solid var(--border-color);
+            color: white; display: flex; align-items: center; justify-content: center;
+            cursor: pointer; z-index: 10; transition: all 0.2s;
+        }
+        .hero-arrow:hover { background: rgba(139, 92, 246, 0.4); border-color: var(--accent-primary); box-shadow: 0 0 15px rgba(139, 92, 246, 0.3); }
+        .hero-arrow.prev { left: 1.5rem; }
+        .hero-arrow.next { right: 1.5rem; }
+        .hero-dots { position: absolute; bottom: 2rem; left: 5rem; display: flex; gap: 0.5rem; z-index: 10; }
+        .hero-dot { width: 24px; height: 4px; background: rgba(255, 255, 255, 0.2); border-radius: 2px; cursor: pointer; transition: background 0.3s; }
+        .hero-dot.active { background: var(--accent-secondary); box-shadow: 0 0 8px var(--accent-secondary); }
+
+        /* ── Content Placeholder ───────────────────────────────────────────── */
+        .content-loading {
+            display: flex; flex-direction: column; align-items: center;
+            justify-content: center; padding: 4rem 2rem; gap: 1.25rem;
+        }
+        .content-loading .spinner { width: 40px; height: 40px; border: 3px solid rgba(236, 72, 153, 0.1); border-radius: 50%; border-top-color: var(--accent-secondary); border-right-color: var(--accent-primary); animation: spin 1s linear infinite; }
+        .content-loading p { color: var(--text-secondary); font-size: 0.9rem; }
+
+        /* ── Skeleton loaders ──────────────────────────────────────────────── */
+        .skeleton-row { padding: 0 3.5rem; }
+        .skeleton-title { width: 200px; height: 24px; background: rgba(255,255,255,0.05); border-radius: 6px; margin-bottom: 1rem; animation: shimmer 1.5s infinite; }
+        .skeleton-cards { display: flex; gap: 1.25rem; overflow: hidden; }
+        .skeleton-card { width: 250px; flex-shrink: 0; border-radius: 12px; overflow: hidden; background: var(--bg-surface); border: 1px solid var(--border-color); }
+        .skeleton-thumb { height: 140px; background: rgba(255,255,255,0.03); animation: shimmer 1.5s infinite; }
+        .skeleton-info { padding: 0.85rem; }
+        .skeleton-line { height: 12px; background: rgba(255,255,255,0.05); border-radius: 4px; margin-bottom: 0.5rem; animation: shimmer 1.5s infinite; }
+        .skeleton-line.short { width: 60%; }
+
+        @keyframes shimmer {
+            0% { opacity: 0.5; }
+            50% { opacity: 1; }
+            100% { opacity: 0.5; }
+        }
+
+        /* ── Category Slider Rows ──────────────────────────────────────────── */
+        .slider-section { display: flex; flex-direction: column; gap: 1rem; padding: 0 3.5rem; position: relative; }
+        .slider-header { display: flex; align-items: center; justify-content: space-between; }
+        .slider-title {
+            font-family: var(--font-display); font-size: 1.35rem; font-weight: 700;
+            letter-spacing: -0.2px; color: white; position: relative; padding-left: 0.75rem;
+        }
+        .slider-title::before {
+            content: ''; position: absolute; left: 0; top: 20%; height: 60%;
+            width: 4px; background: var(--accent-secondary); border-radius: 2px;
+            box-shadow: 0 0 8px var(--accent-secondary);
+        }
+        .slider-arrows { display: flex; gap: 0.5rem; }
+        .slider-btn {
+            background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color);
+            color: var(--text-secondary); width: 32px; height: 32px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .slider-btn:hover { background: rgba(139, 92, 246, 0.2); border-color: var(--accent-primary); color: white; }
+
+        .card-scroller {
+            display: flex; gap: 1.25rem; overflow-x: auto; scroll-behavior: smooth;
+            padding: 0.5rem 0.2rem 1.25rem 0.2rem; scrollbar-width: none;
+            scroll-snap-type: x mandatory;
+        }
+        .card-scroller::-webkit-scrollbar { display: none; }
+
+        /* ── Video Card ────────────────────────────────────────────────────── */
+        .video-card {
+            width: 250px; flex-shrink: 0; background: var(--bg-surface);
+            border: 1px solid var(--border-color); border-radius: 12px;
+            overflow: hidden; cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative; scroll-snap-align: start;
+        }
+        .video-card:hover { transform: translateY(-6px); border-color: var(--border-glow); box-shadow: var(--glow-shadow); }
+        .card-thumb-wrapper { position: relative; aspect-ratio: 16/9; background: #0a0916; overflow: hidden; }
+        .card-thumb { width: 100%; height: 100%; object-fit: cover; transition: transform 0.4s ease; }
+        .video-card:hover .card-thumb { transform: scale(1.05); }
+        .card-hover-overlay {
+            position: absolute; inset: 0; background: rgba(15, 13, 25, 0.6);
+            display: flex; align-items: center; justify-content: center;
+            opacity: 0; transition: opacity 0.3s;
+        }
+        .video-card:hover .card-hover-overlay { opacity: 1; }
+        .play-icon-glow {
+            width: 48px; height: 48px; border-radius: 50%;
+            background: var(--zee5-gradient); display: flex; align-items: center;
+            justify-content: center; color: white;
+            box-shadow: 0 0 15px rgba(236, 72, 153, 0.6);
+            transform: scale(0.8); transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .video-card:hover .play-icon-glow { transform: scale(1); }
+        .card-badge { position: absolute; top: 0.5rem; left: 0.5rem; z-index: 5; }
+        .card-info { padding: 0.85rem; display: flex; flex-direction: column; gap: 0.25rem; }
+        .card-meta-row { display: flex; align-items: center; gap: 0.5rem; font-size: 0.7rem; font-weight: 600; color: var(--text-secondary); }
+        .card-title { font-size: 0.85rem; font-weight: 600; color: white; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 0.2rem; }
+
+        /* ── Tag badges ────────────────────────────────────────────────────── */
+        .tag-badge {
+            font-size: 0.7rem; font-weight: 600; padding: 0.25rem 0.6rem;
+            border-radius: 6px; text-transform: uppercase;
+            background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); color: white;
+        }
+        .tag-badge.premium { background: rgba(236, 72, 153, 0.1); border-color: rgba(236, 72, 153, 0.3); color: var(--accent-secondary); }
+        .tag-badge.free { background: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.3); color: var(--accent-success); }
+        .tag-badge.drm { background: rgba(245, 158, 11, 0.1); border-color: rgba(245, 158, 11, 0.3); color: var(--accent-warning); }
+        .tag-badge.live { background: rgba(244, 63, 94, 0.15); border-color: rgba(244, 63, 94, 0.3); color: var(--accent-orange); }
+
+        /* ── Search Drawer ─────────────────────────────────────────────────── */
+        .search-drawer {
+            position: fixed; top: 70px; left: 0; width: 100%;
+            background: var(--bg-surface); border-bottom: 1px solid var(--border-color);
+            z-index: 90; max-height: 450px; overflow-y: auto;
+            box-shadow: 0 15px 30px rgba(0,0,0,0.6); display: none; padding: 2rem 3.5rem;
+        }
+        .search-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1.5rem; }
+
+        /* ── Extract Modal ─────────────────────────────────────────────────── */
+        .modal {
+            position: fixed; inset: 0; background: rgba(5, 4, 9, 0.85);
+            backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 200; opacity: 0; pointer-events: none; transition: opacity 0.4s ease; padding: 2rem;
+        }
+        .modal.active { opacity: 1; pointer-events: auto; }
+        .modal-container {
+            background: var(--bg-surface); border: 1px solid var(--border-color);
+            border-radius: 20px; width: 100%; max-width: 500px; padding: 2rem;
+            position: relative; transform: scale(0.9);
+            transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .modal.active .modal-container { transform: scale(1); }
+        .modal-close { position: absolute; top: 1rem; right: 1rem; background: none; border: none; color: var(--text-secondary); cursor: pointer; padding: 0.25rem; display: flex; transition: color 0.2s; }
+        .modal-close:hover { color: white; }
+        .modal-title { font-family: var(--font-display); font-size: 1.25rem; font-weight: 700; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem; }
+        .modal-title i { color: var(--accent-secondary); }
+        .form-group { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1.5rem; }
+        .form-label { font-size: 0.7rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px; }
+        .input-wrapper { position: relative; display: flex; }
+        .input-wrapper i { position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--text-secondary); pointer-events: none; }
+        .text-input {
+            width: 100%; background: rgba(0, 0, 0, 0.4); border: 1px solid var(--border-color);
+            padding: 0.85rem 1rem 0.85rem 2.75rem; border-radius: 12px;
+            color: white; font-family: var(--font-body); font-size: 0.9rem;
+            outline: none; transition: all 0.3s;
+        }
+        .text-input:focus { border-color: var(--accent-primary); box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15); }
+
+        /* ── Theater Modal ─────────────────────────────────────────────────── */
+        .theater-modal {
+            position: fixed; inset: 0; background: #000; z-index: 300;
+            display: flex; flex-direction: column; opacity: 0; pointer-events: none;
+            transition: opacity 0.4s ease;
+        }
+        .theater-modal.active { opacity: 1; pointer-events: auto; }
+        .theater-header {
+            height: 60px; background: rgba(6, 5, 11, 0.9);
+            border-bottom: 1px solid var(--border-color);
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 2rem; z-index: 10;
+        }
+        .theater-title { font-family: var(--font-display); font-size: 1.1rem; font-weight: 700; color: white; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 70%; }
+        .theater-body { flex-grow: 1; display: grid; grid-template-columns: 1fr; height: calc(100vh - 60px); }
+        @media (min-width: 1024px) { .theater-body { grid-template-columns: 1.4fr 1fr; } }
+
+        .player-viewport { background: #000; display: flex; align-items: center; justify-content: center; position: relative; height: 100%; }
+        .player-element { width: 100%; height: 100%; max-height: 100%; object-fit: contain; }
+
+        .drm-panel {
+            position: absolute; inset: 0; background: rgba(10, 9, 21, 0.95);
+            backdrop-filter: blur(12px); display: flex; flex-direction: column;
+            align-items: center; justify-content: center; text-align: center;
+            padding: 2.5rem; z-index: 20; color: white; gap: 0.85rem;
+        }
+        .drm-panel i { color: var(--accent-warning); font-size: 42px; filter: drop-shadow(0 0 12px rgba(245, 158, 11, 0.4)); }
+        .drm-panel h3 { font-family: var(--font-display); font-size: 1.3rem; font-weight: 700; color: var(--accent-warning); }
+        .drm-panel p { font-size: 0.85rem; max-width: 380px; color: var(--text-secondary); line-height: 1.5; }
+
+        .theater-details {
+            background: var(--bg-surface); border-left: 1px solid var(--border-color);
+            overflow-y: auto; padding: 2rem; display: flex; flex-direction: column; gap: 1.75rem;
+        }
+        .section-title {
+            font-family: var(--font-display); font-size: 0.9rem; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 1px; color: var(--text-secondary);
+            border-left: 3px solid var(--accent-secondary); padding-left: 0.6rem; margin-bottom: 0.5rem;
+        }
+        .stream-desc { font-size: 0.85rem; line-height: 1.6; color: var(--text-secondary); }
+        .stream-meta-box { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+
+        .manifest-list { display: flex; flex-direction: column; gap: 0.85rem; }
+        .manifest-card {
+            background: rgba(6, 5, 11, 0.4); border: 1px solid var(--border-color);
+            border-radius: 12px; padding: 0.85rem; display: flex; align-items: center;
+            justify-content: space-between; gap: 1rem; transition: all 0.2s;
+        }
+        .manifest-card:hover { border-color: var(--border-glow); background: rgba(6, 5, 11, 0.6); }
+        .manifest-info { min-width: 0; flex-grow: 1; }
+        .manifest-label {
+            font-size: 0.65rem; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.5px; padding: 0.15rem 0.4rem; border-radius: 4px;
+            display: inline-block; margin-bottom: 0.25rem;
+        }
+        .manifest-label.hls { background: rgba(139, 92, 246, 0.15); color: #a78bfa; }
+        .manifest-label.dash { background: rgba(236, 72, 153, 0.15); color: #f472b6; }
+        .manifest-url { font-family: monospace; font-size: 0.75rem; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .manifest-actions { display: flex; gap: 0.5rem; flex-shrink: 0; }
+        .action-circle {
+            background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color);
+            color: var(--text-secondary); width: 32px; height: 32px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .action-circle:hover { background: rgba(139, 92, 246, 0.15); border-color: var(--accent-primary); color: white; }
+        .action-circle.play-circle-btn:hover { background: rgba(16, 185, 129, 0.15); border-color: var(--accent-success); color: white; }
+
+        /* ── Loading ───────────────────────────────────────────────────────── */
+        .loading-screen {
+            position: fixed; inset: 0; background: rgba(6, 5, 11, 0.8);
+            backdrop-filter: blur(8px); z-index: 500; display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            opacity: 0; pointer-events: none; transition: opacity 0.3s;
+        }
+        .loading-screen.active { opacity: 1; pointer-events: auto; }
+        .spinner { width: 50px; height: 50px; border: 3px solid rgba(236, 72, 153, 0.1); border-radius: 50%; border-top-color: var(--accent-secondary); border-right-color: var(--accent-primary); animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .loading-text { margin-top: 1.25rem; font-size: 0.9rem; font-weight: 500; letter-spacing: 0.5px; color: var(--text-secondary); }
+
+        /* ── Toast ─────────────────────────────────────────────────────────── */
+        .toast-container { position: fixed; bottom: 2rem; right: 2rem; display: flex; flex-direction: column; gap: 0.75rem; z-index: 1000; }
+        .toast {
+            background: rgba(15, 13, 25, 0.95); border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(12px); padding: 1rem 1.25rem; border-radius: 12px;
+            display: flex; align-items: center; gap: 0.75rem;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            color: white; min-width: 320px; max-width: 480px;
+        }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        .toast.success { border-left: 4px solid var(--accent-success); }
+        .toast.success i { color: var(--accent-success); }
+        .toast.info { border-left: 4px solid var(--accent-primary); }
+        .toast.info i { color: var(--accent-primary); }
+        .toast.error { border-left: 4px solid var(--accent-orange); }
+        .toast.error i { color: var(--accent-orange); }
+        .toast-content { flex-grow: 1; font-size: 0.8rem; line-height: 1.4; }
+        .toast-close { background: none; border: none; color: var(--text-secondary); cursor: pointer; display: flex; }
+
+        /* ── Footer ────────────────────────────────────────────────────────── */
+        footer {
+            border-top: 1px solid var(--border-color); padding: 2rem 3.5rem;
+            background: rgba(6, 5, 11, 0.9); text-align: center; font-size: 0.8rem;
+            color: var(--text-secondary); display: flex; justify-content: space-between;
+            align-items: center; flex-wrap: wrap; gap: 1.5rem;
+        }
+        footer a { color: var(--text-secondary); text-decoration: none; transition: color 0.2s; }
+        footer a:hover { color: white; }
+
+        /* ── LiveTV Streams Styles ────────────────────────────────────────── */
+        .livetv-event-info {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            text-align: left;
+        }
+        .livetv-event-title {
+            font-family: var(--font-display);
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 0.5rem;
+        }
+        .livetv-event-meta {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+            display: flex;
+            gap: 1rem;
+        }
+        .livetv-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        .livetv-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 1.25rem 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            align-items: center;
+            text-align: center;
+        }
+        .livetv-card:hover {
+            border-color: var(--accent-orange);
+            background: rgba(244, 63, 94, 0.05);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(244, 63, 94, 0.1);
+        }
+        .livetv-card i {
+            color: var(--accent-orange);
+            width: 24px;
+            height: 24px;
+            margin-bottom: 0.25rem;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header -->
+    <header id="header">
+        <div class="nav-left">
+            <div class="logo" onclick="window.location.reload()">FIFA<span>World Cup</span></div>
+            <nav>
+                <a href="#" class="active" onclick="event.preventDefault()">Home</a>
+                <a href="#" onclick="event.preventDefault(); scrollToCategory('fifa');">FIFA World Cup</a>
+                <a href="#" onclick="event.preventDefault(); document.getElementById('live-streams-section').scrollIntoView({behavior:'smooth'});">🔴 Live</a>
+            </nav>
+        </div>
+        <div class="nav-right">
+            <div class="search-container">
+                <input type="text" id="search-input" class="search-bar" placeholder="Search FIFA matches, highlights..." onkeydown="if(event.key === 'Enter') handleSearch();">
+                <i data-lucide="search"></i>
+            </div>
+            <div class="status-badge" id="backend-status">
+                <span class="status-pulse"></span>
+                <span>Connecting...</span>
+            </div>
+            <button class="btn" onclick="openExtractModal()">
+                <i data-lucide="plus-circle"></i>
+                <span>Extract URL</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Search Results -->
+    <section class="search-drawer" id="search-drawer">
+        <div class="slider-header" style="margin-bottom: 1.5rem;">
+            <div class="slider-title" id="search-results-title">Search Results</div>
+            <button class="slider-btn" onclick="closeSearchDrawer()"><i data-lucide="x"></i></button>
+        </div>
+        <div class="search-grid" id="search-results-grid"></div>
+    </section>
+
+    <!-- Main -->
+    <main>
+        <!-- Hero Slider -->
+        <section class="hero-slider" id="hero-slider">
+            <button class="hero-arrow prev" onclick="slidePrev()"><i data-lucide="chevron-left"></i></button>
+            <button class="hero-arrow next" onclick="slideNext()"><i data-lucide="chevron-right"></i></button>
+            <div id="hero-slides-wrapper"></div>
+            <div class="hero-dots" id="hero-dots-wrapper"></div>
+        </section>
+
+        <!-- Category Content Rows (loaded dynamically) -->
+        <div id="category-rows-container" style="display: flex; flex-direction: column; gap: 3rem;">
+            <!-- Skeleton loaders shown while loading -->
+            <div class="skeleton-row" id="skeleton-1">
+                <div class="skeleton-title"></div>
+                <div class="skeleton-cards">
+                    <div class="skeleton-card"><div class="skeleton-thumb"></div><div class="skeleton-info"><div class="skeleton-line"></div><div class="skeleton-line short"></div></div></div>
+                    <div class="skeleton-card"><div class="skeleton-thumb"></div><div class="skeleton-info"><div class="skeleton-line"></div><div class="skeleton-line short"></div></div></div>
+                    <div class="skeleton-card"><div class="skeleton-thumb"></div><div class="skeleton-info"><div class="skeleton-line"></div><div class="skeleton-line short"></div></div></div>
+                    <div class="skeleton-card"><div class="skeleton-thumb"></div><div class="skeleton-info"><div class="skeleton-line"></div><div class="skeleton-line short"></div></div></div>
+                    <div class="skeleton-card"><div class="skeleton-thumb"></div><div class="skeleton-info"><div class="skeleton-line"></div><div class="skeleton-line short"></div></div></div>
+                </div>
+            </div>
+            <div class="skeleton-row" id="skeleton-2">
+                <div class="skeleton-title" style="width: 260px;"></div>
+                <div class="skeleton-cards">
+                    <div class="skeleton-card"><div class="skeleton-thumb"></div><div class="skeleton-info"><div class="skeleton-line"></div><div class="skeleton-line short"></div></div></div>
+                    <div class="skeleton-card"><div class="skeleton-thumb"></div><div class="skeleton-info"><div class="skeleton-line"></div><div class="skeleton-line short"></div></div></div>
+                    <div class="skeleton-card"><div class="skeleton-thumb"></div><div class="skeleton-info"><div class="skeleton-line"></div><div class="skeleton-line short"></div></div></div>
+                    <div class="skeleton-card"><div class="skeleton-thumb"></div><div class="skeleton-info"><div class="skeleton-line"></div><div class="skeleton-line short"></div></div></div>
+                </div>
+            </div>
+            <div class="skeleton-row" id="skeleton-3">
+                <div class="skeleton-title" style="width: 180px;"></div>
+                <div class="skeleton-cards">
+                    <div class="skeleton-card"><div class="skeleton-thumb"></div><div class="skeleton-info"><div class="skeleton-line"></div><div class="skeleton-line short"></div></div></div>
+                    <div class="skeleton-card"><div class="skeleton-thumb"></div><div class="skeleton-info"><div class="skeleton-line"></div><div class="skeleton-line short"></div></div></div>
+                    <div class="skeleton-card"><div class="skeleton-thumb"></div><div class="skeleton-info"><div class="skeleton-line"></div><div class="skeleton-line short"></div></div></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 🔴 Live Streams Section -->
+        <section id="live-streams-section" class="slider-section" style="padding: 0 3.5rem;">
+            <div class="slider-header">
+                <div class="slider-title" style="display: flex; align-items: center; gap: 0.5rem;">🔴 Live Matches <span style="font-size: 0.7rem; font-weight: 500; color: var(--accent-orange); background: rgba(244, 63, 94, 0.1); padding: 2px 8px; border-radius: 6px;">FREE STREAMS</span></div>
+            </div>
+            <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;">Search for active or upcoming live matches to load free HLS stream channels bypassing DRM and subscription locks.</p>
+            <div style="display: flex; gap: 0.75rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
+                <div style="position: relative; flex-grow: 1; max-width: 600px;">
+                    <input type="text" id="livetv-search-input" class="text-input" placeholder="Search team names (e.g. Spain, Belgium, Germany)..." value="Spain" onkeydown="if(event.key === 'Enter') searchLiveTVMatches();" style="padding-left: 2.75rem; width: 100%;">
+                    <i data-lucide="search" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--accent-orange); width: 16px; height: 16px; pointer-events: none;"></i>
+                </div>
+                <button class="btn" onclick="searchLiveTVMatches()" style="background: linear-gradient(135deg, #ef4444 0%, #f97316 100%); box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);">
+                    <i data-lucide="tv" style="width: 16px; height: 16px;"></i>
+                    <span>Search Matches</span>
+                </button>
+            </div>
+            <div id="livetv-search-results" style="margin-bottom: 1.5rem;"></div>
+            <div id="livetv-streams-container"></div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <div>&copy; 2026 <strong>ZEE5 Extractor Portal</strong> &bull; Fingerprint Bypass Network.</div>
+        <div style="display: flex; gap: 1rem;">
+            <a href="/health" target="_blank">Engine Health</a>
+            <span>&bull;</span>
+            <a href="/api/zee5/debug/fingerprint" target="_blank">Fingerprint Console</a>
+        </div>
+    </footer>
+
+    <!-- Direct URL Modal -->
+    <div class="modal" id="extract-modal">
+        <div class="modal-container">
+            <button class="modal-close" onclick="closeExtractModal()"><i data-lucide="x"></i></button>
+            <div class="modal-title"><i data-lucide="zap"></i><span>Direct URL Stream Extractor</span></div>
+            <form id="url-extract-form" onsubmit="event.preventDefault(); submitExtractForm();">
+                <div class="form-group">
+                    <label class="form-label" for="zee-url">Zee5 Video or Page URL</label>
+                    <div class="input-wrapper">
+                        <input type="url" id="zee-url" class="text-input" placeholder="https://www.zee5.com/movies/details/..." required>
+                        <i data-lucide="link-2"></i>
+                    </div>
+                </div>
+                <button type="submit" class="btn" style="width: 100%; padding: 0.85rem;">
+                    <i data-lucide="play"></i>
+                    <span>Resolve & Play Stream</span>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Theater Playback Modal -->
+    <div class="theater-modal" id="theater-modal">
+        <div class="theater-header">
+            <div class="theater-title" id="theater-title-text">Stream Playback & Manifest Extractor</div>
+            <button class="action-circle" onclick="closeTheater()"><i data-lucide="x"></i></button>
+        </div>
+        <div class="theater-body">
+            <div class="player-viewport">
+                <div class="drm-panel" id="drm-panel" style="display: none;">
+                    <i data-lucide="shield-alert"></i>
+                    <h3>Widevine DRM Protected</h3>
+                    <p>This stream is encrypted. Playback requires a Widevine decryption key. The manifest stream links can be copied below for external downloader tools.</p>
+                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                        <button class="btn btn-outline" style="font-size: 0.75rem; padding: 0.35rem 0.85rem;" onclick="dismissDrmPanel()">Force Load Player</button>
+                        <button class="btn" style="font-size: 0.75rem; padding: 0.35rem 0.85rem; background: linear-gradient(135deg, #ef4444, #f97316);" onclick="closeTheater(); document.getElementById('live-streams-section').scrollIntoView({behavior:'smooth'});">🔴 Try Free Stream</button>
+                    </div>
+                </div>
+                <video id="video-player" class="player-element" controls crossorigin></video>
+            </div>
+            <div class="theater-details">
+                <div>
+                    <h2 class="hero-title" id="theater-title" style="font-size: 1.75rem; margin-bottom: 0.5rem; max-width: 100%;">Content Title</h2>
+                    <div class="stream-meta-box" id="theater-meta" style="margin-bottom: 1rem;"></div>
+                    <div class="section-title">Description</div>
+                    <p class="stream-desc" id="theater-desc">No description available.</p>
+                </div>
+                <div>
+                    <div class="section-title">Resolved Stream Manifests</div>
+                    <div class="manifest-list" id="theater-manifests"></div>
+                </div>
+                <div id="alternative-streams-box" style="display: none; margin-top: 1.5rem;">
+                    <div class="section-title" style="color: var(--accent-orange); border-left-color: var(--accent-orange);">🔴 Alternative Free Streams</div>
+                    <div class="manifest-list" id="theater-alternative-streams"></div>
+                </div>
+                <div>
+                    <div class="section-title">Cryptographic Details</div>
+                    <div style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.85rem; font-family: monospace; font-size: 0.75rem; color: var(--text-secondary);">
+                        <div>Content ID: <span id="crypt-content-id" style="color: white;">-</span></div>
+                        <div style="margin-top: 4px;">DRM Status: <span id="crypt-drm-status" style="color: white;">-</span></div>
+                        <div style="margin-top: 4px;">DRM Key ID: <span id="crypt-key-id" style="color: white; word-break: break-all;">-</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-screen" id="loading-screen">
+        <div class="spinner"></div>
+        <div class="loading-text" id="loading-text">Scraping and rotating fingerprints...</div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toast-wrapper"></div>
+
+    <!-- Application Script -->
+    <script>
+        const API_BASE = window.location.origin;
+
+        // State
+        let currentSlideIndex = 0;
+        let slideInterval = null;
+        let shakaPlayer = null;
+        let homepageBuckets = []; // Live data from API
+        const videoElement = document.getElementById('video-player');
+
+        // Install Shaka Player polyfills
+        shaka.polyfill.installAll();
+
+        // ── Init ──────────────────────────────────────────────────────────
+        window.addEventListener('DOMContentLoaded', () => {
+            checkEngineHealth();
+            loadHomepageContent();
+
+            // Default startup LiveTV match list populate
+            setTimeout(() => {
+                searchLiveTVMatches();
+            }, 500);
+
+            window.addEventListener('scroll', () => {
+                const header = document.getElementById('header');
+                header.classList.toggle('scrolled', window.scrollY > 50);
+            });
+
+            lucide.createIcons();
+        });
+
+        // ── Health Check ──────────────────────────────────────────────────
+        async function checkEngineHealth() {
+            const statusBadge = document.getElementById('backend-status');
+            try {
+                const res = await fetch(`${API_BASE}/health`);
+                if (res.ok) {
+                    statusBadge.innerHTML = `<span class="status-pulse"></span><span>Server: Active</span>`;
+                    statusBadge.style.background = 'rgba(16, 185, 129, 0.1)';
+                    statusBadge.style.borderColor = 'rgba(16, 185, 129, 0.25)';
+                    statusBadge.style.color = 'var(--accent-success)';
+                } else { throw new Error(); }
+            } catch {
+                statusBadge.innerHTML = `<span style="background-color: var(--accent-orange); box-shadow: 0 0 8px var(--accent-orange);" class="status-pulse"></span><span>Server: Offline</span>`;
+                statusBadge.style.background = 'rgba(244, 63, 94, 0.1)';
+                statusBadge.style.borderColor = 'rgba(244, 63, 94, 0.25)';
+                statusBadge.style.color = 'var(--accent-orange)';
+                showToast('error', 'Connection Offline', 'Scraper backend is offline. Run the dev server on port 3002.');
+            }
+        }
+
+        // ── Load Live Homepage Content ────────────────────────────────────
+        async function loadHomepageContent() {
+            try {
+                showToast('info', 'Loading Content', 'Fetching live catalog from ZEE5 with rotated fingerprints...');
+                
+                const res = await fetch(`${API_BASE}/api/zee5/homepage`);
+                if (!res.ok) throw new Error('Failed to load homepage');
+                
+                const data = await res.json();
+                const rawBuckets = data.buckets || [];
+
+                // Filter buckets and items to show ONLY FIFA World Cup / sports / football content
+                const keywords = ['fifa', 'world cup', 'worldcup', 'football', 'soccer', 'match', 'highlights', 'sports', 'vs', 'morocco', 'canada'];
+                homepageBuckets = rawBuckets.map(bucket => {
+                    const filteredItems = (bucket.items || []).filter(item => {
+                        const title = (item.title || '').toLowerCase();
+                        const desc = (item.description || '').toLowerCase();
+                        const genre = (item.genre || '').toLowerCase();
+                        const tags = (item.tags || []).map(t => String(t).toLowerCase());
+                        
+                        return keywords.some(kw => 
+                            title.includes(kw) || 
+                            desc.includes(kw) || 
+                            genre.includes(kw) || 
+                            tags.some(tag => tag.includes(kw))
+                        );
+                    });
+                    
+                    return {
+                        ...bucket,
+                        items: filteredItems
+                    };
+                }).filter(bucket => bucket.items.length > 0);
+
+                if (homepageBuckets.length === 0) {
+                    showToast('error', 'No Content', 'No FIFA World Cup/sports content found on homepage.');
+                    // Remove skeleton loaders
+                    document.querySelectorAll('.skeleton-row').forEach(el => el.remove());
+                    return;
+                }
+
+                // Render hero from first bucket (banner items)
+                renderHeroSlider(homepageBuckets[0]);
+
+                // Render category rows from remaining buckets
+                renderCategoryRows(homepageBuckets.slice(1));
+
+                showToast('success', 'Content Loaded', `${homepageBuckets.length} FIFA categories loaded.`);
+            } catch (err) {
+                console.error('Homepage load error:', err);
+                showToast('error', 'Load Failed', 'Could not fetch live content. Check if backend is running.');
+                // Remove skeleton loaders
+                document.querySelectorAll('.skeleton-row').forEach(el => el.remove());
+            }
+        }
+
+        // ── Render Hero from Banner Bucket ────────────────────────────────
+        function renderHeroSlider(bannerBucket) {
+            const wrapper = document.getElementById('hero-slides-wrapper');
+            const dotsWrapper = document.getElementById('hero-dots-wrapper');
+            wrapper.innerHTML = '';
+            dotsWrapper.innerHTML = '';
+
+            const items = (bannerBucket?.items || []).slice(0, 8); // Show up to 8 hero slides
+            if (items.length === 0) return;
+
+            items.forEach((item, index) => {
+                const slide = document.createElement('div');
+                slide.className = `hero-slide ${index === 0 ? 'active' : ''}`;
+
+                const imgSrc = item.coverImage || item.imageUrl || '';
+                const duration = formatDuration(item.duration);
+                const badge = getBadgeLabel(item);
+                const genre = item.genre || item.assetSubtype || '';
+
+                slide.innerHTML = `
+                    <img class="hero-backdrop" src="${imgSrc}" alt="${escapeHtml(item.title)}" onerror="this.style.display='none'">
+                    <div class="hero-overlay">
+                        <div class="hero-meta">
+                            <span class="hero-badge">${escapeHtml(badge)}</span>
+                            <span>&bull;</span>
+                            <span>${escapeHtml(genre || 'Entertainment')}</span>
+                            ${duration ? `<span>&bull;</span><span>${duration}</span>` : ''}
+                            ${item.isDrm ? `<span>&bull;</span><span style="color: var(--accent-warning);">🔒 DRM</span>` : ''}
+                        </div>
+                        <h1 class="hero-title">${escapeHtml(item.title)}</h1>
+                        <p class="hero-description">${escapeHtml(item.description || 'Stream this content on ZEE5 Portal with fingerprint bypass.')}</p>
+                        <div class="hero-actions">
+                            <button class="btn" onclick="resolveById('${escapeJs(item.id)}')">
+                                <i data-lucide="play-circle"></i>
+                                <span>Watch Now</span>
+                            </button>
+                            <button class="btn btn-outline" onclick="resolveById('${escapeJs(item.id)}')">
+                                <i data-lucide="info"></i>
+                                <span>Inspect Manifest</span>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                wrapper.appendChild(slide);
+
+                const dot = document.createElement('span');
+                dot.className = `hero-dot ${index === 0 ? 'active' : ''}`;
+                dot.onclick = () => goToSlide(index);
+                dotsWrapper.appendChild(dot);
+            });
+
+            lucide.createIcons();
+            startHeroAutoplay();
+        }
+
+        // ── Render Category Rows ──────────────────────────────────────────
+        function renderCategoryRows(buckets) {
+            const container = document.getElementById('category-rows-container');
+            container.innerHTML = ''; // Clear skeleton loaders
+
+            buckets.forEach((bucket, catIdx) => {
+                if (!bucket.items || bucket.items.length === 0) return;
+
+                const section = document.createElement('section');
+                section.className = 'slider-section';
+                section.dataset.category = bucket.title.toLowerCase();
+
+                const cardsHtml = bucket.items.map(item => {
+                    const duration = formatDuration(item.duration);
+                    const badge = getBadgeLabel(item);
+                    const badgeClass = getBadgeClass(item);
+
+                    return `
+                        <div class="video-card" onclick="resolveById('${escapeJs(item.id)}')">
+                            <div class="card-thumb-wrapper">
+                                ${badge ? `<span class="card-badge tag-badge ${badgeClass}">${escapeHtml(badge)}</span>` : ''}
+                                <img class="card-thumb" src="${item.imageUrl}" alt="${escapeHtml(item.title)}" loading="lazy" onerror="this.style.opacity='0.3'">
+                                <div class="card-hover-overlay">
+                                    <div class="play-icon-glow">
+                                        <i data-lucide="play" style="width: 20px; height: 20px; fill: white; margin-left: 2px;"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-info">
+                                <div class="card-meta-row">
+                                    <span>${duration || 'N/A'}</span>
+                                    <span>&bull;</span>
+                                    ${item.isDrm
+                                        ? `<span style="color: var(--accent-warning);">🔒 DRM</span>`
+                                        : `<span style="color: var(--accent-success);">▶ Playable</span>`}
+                                </div>
+                                <div class="card-title">${escapeHtml(item.title)}</div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                section.innerHTML = `
+                    <div class="slider-header">
+                        <div class="slider-title">${escapeHtml(bucket.title)}</div>
+                        <div class="slider-arrows">
+                            <button class="slider-btn" onclick="scrollSlider('slider-${catIdx}', -1)"><i data-lucide="chevron-left"></i></button>
+                            <button class="slider-btn" onclick="scrollSlider('slider-${catIdx}', 1)"><i data-lucide="chevron-right"></i></button>
+                        </div>
+                    </div>
+                    <div class="card-scroller" id="slider-${catIdx}">
+                        ${cardsHtml}
+                    </div>
+                `;
+                container.appendChild(section);
+            });
+
+            lucide.createIcons();
+        }
+
+        // ── Helper: Badge Label ───────────────────────────────────────────
+        function getBadgeLabel(item) {
+            if (!item) return '';
+            const bt = (item.businessType || '').toLowerCase();
+            if (bt.includes('advertisement')) return 'Free';
+            if (bt.includes('premium')) return 'Premium';
+            if (bt.includes('rent')) return 'Rent';
+            if (item.assetSubtype === 'live' || item.assetSubtype === 'linear') return 'Live';
+            return '';
+        }
+
+        function getBadgeClass(item) {
+            const label = getBadgeLabel(item).toLowerCase();
+            if (label === 'free') return 'free';
+            if (label === 'premium') return 'premium';
+            if (label === 'live') return 'live';
+            if (label === 'rent') return 'premium';
+            return '';
+        }
+
+        // ── Helper: Duration Formatter ────────────────────────────────────
+        function formatDuration(seconds) {
+            if (!seconds || seconds <= 0) return '';
+            if (seconds < 60) return `${seconds}s`;
+            if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
+            const h = Math.floor(seconds / 3600);
+            const m = Math.floor((seconds % 3600) / 60);
+            return m > 0 ? `${h}h ${m}m` : `${h}h`;
+        }
+
+        // ── Scroll Category Into View ─────────────────────────────────────
+        function scrollToCategory(keyword) {
+            const sections = document.querySelectorAll('.slider-section');
+            for (const section of sections) {
+                const cat = (section.dataset.category || '').toLowerCase();
+                if (cat.includes(keyword)) {
+                    section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    return;
+                }
+            }
+            showToast('info', 'Category', `Scroll down to find "${keyword}" content.`);
+        }
+
+        // ── Slider Scrolling ──────────────────────────────────────────────
+        function scrollSlider(id, direction) {
+            const scroller = document.getElementById(id);
+            if (!scroller) return;
+            scroller.scrollBy({ left: 270 * direction * 2, behavior: 'smooth' });
+        }
+
+        // ── Hero Slides ───────────────────────────────────────────────────
+        function startHeroAutoplay() { slideInterval = setInterval(slideNext, 8000); }
+        function stopHeroAutoplay() { clearInterval(slideInterval); }
+        function slideNext() {
+            const slides = document.querySelectorAll('.hero-slide');
+            if (slides.length === 0) return;
+            goToSlide((currentSlideIndex + 1) % slides.length);
+        }
+        function slidePrev() {
+            const slides = document.querySelectorAll('.hero-slide');
+            if (slides.length === 0) return;
+            goToSlide((currentSlideIndex - 1 + slides.length) % slides.length);
+        }
+        function goToSlide(index) {
+            stopHeroAutoplay();
+            const slides = document.querySelectorAll('.hero-slide');
+            const dots = document.querySelectorAll('.hero-dot');
+            if (slides.length === 0) return;
+            slides[currentSlideIndex]?.classList.remove('active');
+            dots[currentSlideIndex]?.classList.remove('active');
+            currentSlideIndex = index;
+            slides[currentSlideIndex]?.classList.add('active');
+            dots[currentSlideIndex]?.classList.add('active');
+            startHeroAutoplay();
+        }
+
+        // ── Modals ────────────────────────────────────────────────────────
+        function openExtractModal() { document.getElementById('extract-modal').classList.add('active'); }
+        function closeExtractModal() { document.getElementById('extract-modal').classList.remove('active'); }
+        function submitExtractForm() {
+            const url = document.getElementById('zee-url').value.trim();
+            if (url) { closeExtractModal(); resolveAndPlay(url); }
+        }
+
+        // ── Search ────────────────────────────────────────────────────────
+        async function handleSearch() {
+            const q = document.getElementById('search-input').value.trim();
+            if (!q) return;
+
+            const grid = document.getElementById('search-results-grid');
+            const drawer = document.getElementById('search-drawer');
+            grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: var(--text-secondary); padding: 2rem;">Searching...</div>';
+            drawer.style.display = 'block';
+
+            try {
+                const res = await fetch(`${API_BASE}/api/zee5/search?q=${encodeURIComponent(q)}`);
+                if (!res.ok) throw new Error();
+
+                const results = await res.json();
+                grid.innerHTML = '';
+
+                if (results.length === 0) {
+                    grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: var(--text-secondary); padding: 2rem;">No matching content found. Try a broader term.</div>';
+                    return;
+                }
+
+                document.getElementById('search-results-title').textContent = `Search Results — "${q}" (${results.length})`;
+
+                results.forEach(item => {
+                    const card = document.createElement('div');
+                    card.className = 'video-card';
+                    card.onclick = () => { closeSearchDrawer(); resolveById(item.id); };
+                    const duration = formatDuration(item.duration);
+                    card.innerHTML = `
+                        <div class="card-thumb-wrapper">
+                            <img class="card-thumb" src="${item.imageUrl || ''}" alt="${escapeHtml(item.title)}" loading="lazy" onerror="this.style.opacity='0.3'">
+                            <div class="card-hover-overlay">
+                                <div class="play-icon-glow"><i data-lucide="play" style="width: 20px; height: 20px; fill: white; margin-left: 2px;"></i></div>
+                            </div>
+                        </div>
+                        <div class="card-info">
+                            <div class="card-meta-row">
+                                <span>${duration || item.contentType || ''}</span>
+                                ${item.isDrm ? `<span>&bull;</span><span style="color: var(--accent-warning);">🔒 DRM</span>` : ''}
+                            </div>
+                            <div class="card-title">${escapeHtml(item.title)}</div>
+                        </div>
+                    `;
+                    grid.appendChild(card);
+                });
+                lucide.createIcons();
+            } catch {
+                grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: var(--accent-orange); padding: 2rem;">Search failed. Backend may be offline.</div>';
+            }
+        }
+
+        function closeSearchDrawer() { document.getElementById('search-drawer').style.display = 'none'; }
+
+        // ── Resolve by Content ID (from homepage data) ────────────────────
+        async function resolveById(contentId) {
+            const loading = document.getElementById('loading-screen');
+            const loaderText = document.getElementById('loading-text');
+            loaderText.textContent = "Resolving stream manifests with rotated fingerprint...";
+            loading.classList.add('active');
+
+            try {
+                const response = await fetch(`${API_BASE}/api/zee5/details?id=${encodeURIComponent(contentId)}`);
+                if (!response.ok) {
+                    const err = await response.json().catch(() => ({}));
+                    throw new Error(err.error || "Failed to extract streams");
+                }
+                const content = await response.json();
+                renderTheaterDetails(content);
+                document.getElementById('theater-modal').classList.add('active');
+                showToast('success', 'Manifest Extracted', `Resolved streams for "${content.title}".`);
+            } catch (err) {
+                console.error(err);
+                showToast('error', 'Extraction Failed', err.message);
+            } finally {
+                loading.classList.remove('active');
+            }
+        }
+
+        // ── Resolve by URL (from Extract modal) ──────────────────────────
+        async function resolveAndPlay(url, directId = null) {
+            const loading = document.getElementById('loading-screen');
+            const loaderText = document.getElementById('loading-text');
+            loaderText.textContent = "Connecting to backend scraper engine...";
+            loading.classList.add('active');
+
+            try {
+                let fetchUrl = `${API_BASE}/api/zee5/content?url=${encodeURIComponent(url)}`;
+                if (directId) fetchUrl += `&id=${encodeURIComponent(directId)}`;
+
+                const response = await fetch(fetchUrl);
+                if (!response.ok) {
+                    const err = await response.json().catch(() => ({}));
+                    throw new Error(err.error || "Failed to extract streams from this URL");
+                }
+                const content = await response.json();
+                renderTheaterDetails(content);
+                document.getElementById('theater-modal').classList.add('active');
+                showToast('success', 'Manifest Extracted', `Resolved streams for "${content.title}".`);
+            } catch (err) {
+                console.error(err);
+                showToast('error', 'Extraction Failed', err.message);
+            } finally {
+                loading.classList.remove('active');
+            }
+        }
+
+        // ── Theater Renderer ──────────────────────────────────────────────
+        function renderTheaterDetails(content) {
+            resetPlayer();
+
+            document.getElementById('theater-title-text').textContent = content.title;
+            document.getElementById('theater-title').textContent = content.title;
+            document.getElementById('theater-desc').textContent = content.description || 'No description available.';
+
+            document.getElementById('crypt-content-id').textContent = content.id || '-';
+            document.getElementById('crypt-drm-status').textContent = content.isDrm ? 'DRM Cryptographic Lock (Widevine)' : 'Unencrypted Stream (Playable)';
+            document.getElementById('crypt-key-id').textContent = content.drmKeyId || 'None';
+
+            // Meta tags
+            const metaBox = document.getElementById('theater-meta');
+            metaBox.innerHTML = '';
+            if (content.contentType) metaBox.innerHTML += `<span class="tag-badge">Type: ${escapeHtml(content.contentType)}</span>`;
+            if (content.businessType) {
+                const isPremium = content.businessType.includes('premium');
+                metaBox.innerHTML += `<span class="tag-badge ${isPremium ? 'premium' : 'free'}">${escapeHtml(content.businessType)}</span>`;
+            }
+            if (content.isDrm) {
+                metaBox.innerHTML += `<span class="tag-badge drm">🔒 DRM Encrypted</span>`;
+            } else {
+                metaBox.innerHTML += `<span class="tag-badge free">▶ Playable</span>`;
+            }
+            if (content.duration) {
+                metaBox.innerHTML += `<span class="tag-badge">${formatDuration(content.duration)}</span>`;
+            }
+            // Show entitlement info
+            if (content.entitlement) {
+                const ent = content.entitlement;
+                if (ent.isAVOD) metaBox.innerHTML += `<span class="tag-badge free">🎬 Ad-Supported (Free)</span>`;
+                if (ent.isLive) metaBox.innerHTML += `<span class="tag-badge" style="background: rgba(239,68,68,0.2); color: #ef4444;">🔴 LIVE</span>`;
+            }
+
+            // ⭐ Signed Playback URLs (from singlePlayback API - these actually WORK!)
+            const manifestsBox = document.getElementById('theater-manifests');
+            manifestsBox.innerHTML = '';
+            
+            let hasSignedUrl = false;
+            
+            // Show signed DASH URL first (primary signed URL)
+            if (content.signedDashUrl) {
+                hasSignedUrl = true;
+                const card = document.createElement('div');
+                card.className = 'manifest-card';
+                card.style.borderColor = 'rgba(16, 185, 129, 0.3)';
+                card.style.background = 'rgba(16, 185, 129, 0.05)';
+                card.innerHTML = `
+                    <div class="manifest-info">
+                        <span class="manifest-label dash" style="background: linear-gradient(135deg, #10b981, #059669);">⭐ SIGNED DASH</span>
+                        <div class="manifest-url" title="${escapeHtml(content.signedDashUrl)}">${escapeHtml(content.signedDashUrl)}</div>
+                    </div>
+                    <div class="manifest-actions">
+                        <button class="action-circle" onclick="copyText('${escapeJs(content.signedDashUrl)}')" title="Copy URL"><i data-lucide="copy" style="width: 14px; height: 14px;"></i></button>
+                        <button class="action-circle" onclick="window.open('${escapeJs(content.signedDashUrl)}', '_blank')" title="Open in new tab"><i data-lucide="external-link" style="width: 14px; height: 14px;"></i></button>
+                    </div>
+                `;
+                manifestsBox.appendChild(card);
+            }
+
+            // Show signed HLS URL (derived or direct)
+            if (content.signedHlsUrl) {
+                hasSignedUrl = true;
+                const card = document.createElement('div');
+                card.className = 'manifest-card';
+                card.style.borderColor = 'rgba(16, 185, 129, 0.3)';
+                card.style.background = 'rgba(16, 185, 129, 0.05)';
+                card.innerHTML = `
+                    <div class="manifest-info">
+                        <span class="manifest-label hls" style="background: linear-gradient(135deg, #10b981, #059669);">⭐ SIGNED HLS</span>
+                        <div class="manifest-url" title="${escapeHtml(content.signedHlsUrl)}">${escapeHtml(content.signedHlsUrl)}</div>
+                    </div>
+                    <div class="manifest-actions">
+                        <button class="action-circle play-circle-btn" onclick="playHlsInTheater('${escapeJs(content.signedHlsUrl)}')" title="Play in browser"><i data-lucide="play" style="width: 14px; height: 14px;"></i></button>
+                        <button class="action-circle" onclick="copyText('${escapeJs(content.signedHlsUrl)}')" title="Copy URL"><i data-lucide="copy" style="width: 14px; height: 14px;"></i></button>
+                    </div>
+                `;
+                manifestsBox.appendChild(card);
+            }
+
+            // DRM License info (if available)
+            if (content.drmLicenseUrl && content.drmCustomData) {
+                const drmCard = document.createElement('div');
+                drmCard.className = 'manifest-card';
+                drmCard.style.borderColor = 'rgba(245, 158, 11, 0.3)';
+                drmCard.style.background = 'rgba(245, 158, 11, 0.05)';
+                drmCard.innerHTML = `
+                    <div class="manifest-info">
+                        <span class="manifest-label" style="background: linear-gradient(135deg, #f59e0b, #d97706);">🔑 Widevine License</span>
+                        <div class="manifest-url" title="${escapeHtml(content.drmLicenseUrl)}">${escapeHtml(content.drmLicenseUrl)}</div>
+                        <div style="font-size: 0.65rem; color: var(--text-muted); margin-top: 4px;">
+                            sdrm: ${escapeHtml((content.drmCustomData || '').substring(0, 40))}... | nl: ${escapeHtml(content.drmNl || '')}
+                        </div>
+                    </div>
+                    <div class="manifest-actions">
+                        <button class="action-circle" onclick="copyText('${escapeJs(content.drmLicenseUrl)}')" title="Copy License URL"><i data-lucide="copy" style="width: 14px; height: 14px;"></i></button>
+                    </div>
+                `;
+                manifestsBox.appendChild(drmCard);
+            }
+
+            // Separator if we have both signed and unsigned
+            const hlsList = content.hlsUrls || [];
+            const dashList = content.dashUrls || [];
+            if (hasSignedUrl && (hlsList.length > 0 || dashList.length > 0)) {
+                const sep = document.createElement('div');
+                sep.style.cssText = 'font-size: 0.7rem; color: var(--text-muted); padding: 0.5rem 0; text-align: center; border-top: 1px solid var(--border-color); margin-top: 0.5rem;';
+                sep.textContent = '── Original (unsigned) manifest URLs ──';
+                manifestsBox.appendChild(sep);
+            }
+
+            if (!hasSignedUrl && hlsList.length === 0 && dashList.length === 0) {
+                manifestsBox.innerHTML = '<div style="color: var(--text-secondary); text-align: center; padding: 1.5rem; font-size: 0.8rem;">No streams resolved. Content may require premium access or is a show (try an episode).</div>';
+            }
+
+            hlsList.forEach(url => {
+                const card = document.createElement('div');
+                card.className = 'manifest-card';
+                card.innerHTML = `
+                    <div class="manifest-info">
+                        <span class="manifest-label hls">HLS (.m3u8)</span>
+                        <div class="manifest-url" title="${escapeHtml(url)}">${escapeHtml(url)}</div>
+                    </div>
+                    <div class="manifest-actions">
+                        <button class="action-circle play-circle-btn" onclick="playHlsInTheater('${escapeJs(url)}')" title="Load in player"><i data-lucide="play" style="width: 14px; height: 14px;"></i></button>
+                        <button class="action-circle" onclick="copyText('${escapeJs(url)}')" title="Copy URL"><i data-lucide="copy" style="width: 14px; height: 14px;"></i></button>
+                    </div>
+                `;
+                manifestsBox.appendChild(card);
+            });
+
+            dashList.forEach(url => {
+                const card = document.createElement('div');
+                card.className = 'manifest-card';
+                card.innerHTML = `
+                    <div class="manifest-info">
+                        <span class="manifest-label dash">DASH (.mpd)</span>
+                        <div class="manifest-url" title="${escapeHtml(url)}">${escapeHtml(url)}</div>
+                    </div>
+                    <div class="manifest-actions">
+                        <button class="action-circle" onclick="copyText('${escapeJs(url)}')" title="Copy URL"><i data-lucide="copy" style="width: 14px; height: 14px;"></i></button>
+                    </div>
+                `;
+                manifestsBox.appendChild(card);
+            });
+
+            // Check for dummy/blocked stream placeholders
+            const playUrl = content.signedHlsUrl || (hlsList.length > 0 ? hlsList[0] : '');
+            const isDummy = isDummyStreamUrl(playUrl) || isDummyStreamUrl(content.signedDashUrl);
+            const isBlockedOrDrm = content.isDrm || isDummy || (content.businessType && content.businessType.toLowerCase().includes('premium'));
+
+            // DRM/Premium overlay — show if blocked/DRM and we don't have working signed URLs
+            const drmPanel = document.getElementById('drm-panel');
+            if (isBlockedOrDrm && !hasSignedUrl) {
+                drmPanel.style.display = 'flex';
+                // Trigger background search on LiveTV for this match
+                fetchAlternativeStreams(content.title);
+            } else {
+                drmPanel.style.display = 'none';
+                document.getElementById('alternative-streams-box').style.display = 'none';
+                
+                // Play stream with Widevine DRM if content has DRM keys, otherwise play HLS
+                if (content.isDrm) {
+                    const dPlayUrl = content.signedDashUrl || (content.dashUrls && content.dashUrls[0]);
+                    if (dPlayUrl && !isDummyStreamUrl(dPlayUrl)) {
+                        playDrmStream(dPlayUrl, content.drmLicenseUrl, content.drmCustomData, content.drmNl);
+                    } else {
+                        drmPanel.style.display = 'flex';
+                        fetchAlternativeStreams(content.title);
+                    }
+                } else {
+                    if (playUrl && !isDummyStreamUrl(playUrl)) {
+                        playRegularStream(playUrl);
+                    } else {
+                        drmPanel.style.display = 'flex';
+                        fetchAlternativeStreams(content.title);
+                    }
+                }
+            }
+
+            lucide.createIcons();
+        }
+
+        // ── Helper to detect placeholder URLs for blocked premium content ────
+        function isDummyStreamUrl(url) {
+            if (!url) return true;
+            return url.includes('net0/0') || url.endsWith('/0') || url.endsWith('/0/0') || url === '0' || url === '0/0';
+        }
+
+        // ── Shaka Player Integration ──────────────────────────────────────────
+        async function initShakaPlayer() {
+            if (shakaPlayer) {
+                await shakaPlayer.destroy();
+                shakaPlayer = null;
+            }
+            shakaPlayer = new shaka.Player();
+            await shakaPlayer.attach(videoElement);
+            
+            shakaPlayer.addEventListener('error', (event) => {
+                console.error('Shaka Player error:', event.detail);
+                if (event.detail.severity === shaka.util.Error.Severity.CRITICAL) {
+                    showToast('error', 'Playback Error', `Shaka error code: ${event.detail.code}`);
+                }
+            });
+        }
+
+        async function playRegularStream(url) {
+            await resetPlayer();
+            
+            // For signed streams or livetv streams, play directly; for unsigned, route via proxy
+            const isSigned = url.includes('req_id=') || url.includes('hdntl=') || url.includes('hdnts=') || url.includes('/api/livetv/stream');
+            const playUrl = isSigned ? url : `${API_BASE}/api/zee5/stream?url=${encodeURIComponent(url)}`;
+            console.log('Playing regular stream (direct=' + isSigned + '):', playUrl);
+
+            try {
+                await initShakaPlayer();
+                await shakaPlayer.load(playUrl);
+                videoElement.play().catch(() => console.log('Autoplay blocked'));
+            } catch (error) {
+                console.error('Shaka load error:', error);
+                showToast('error', 'Playback Error', `Failed to load stream (Error code: ${error.code}).`);
+            }
+        }
+
+        async function playDrmStream(url, licenseUrl, customData, nl) {
+            await resetPlayer();
+            
+            const isSigned = url.includes('req_id=');
+            const playUrl = isSigned ? url : `${API_BASE}/api/zee5/stream?url=${encodeURIComponent(url)}`;
+            console.log('Playing Widevine DRM stream:', playUrl);
+
+            try {
+                await initShakaPlayer();
+                
+                // Configure Widevine server URL
+                shakaPlayer.configure({
+                    drm: {
+                        servers: {
+                            'com.widevine.alpha': licenseUrl || 'https://spapi.zee5.com/widevine/getLicense'
+                        }
+                    }
+                });
+
+                // Configure license request headers using Shaka's request filter (required for ZEE5)
+                shakaPlayer.getNetworkingEngine().registerRequestFilter((type, request) => {
+                    if (type === shaka.net.NetworkingEngine.RequestType.LICENSE) {
+                        request.headers['customdata'] = customData;
+                        request.headers['nl'] = nl;
+                        request.headers['origin'] = 'https://www.zee5.com';
+                        request.headers['referer'] = 'https://www.zee5.com/';
+                    }
+                });
+
+                await shakaPlayer.load(playUrl);
+                videoElement.play().catch(() => console.log('Autoplay blocked'));
+                showToast('success', 'DRM Authorized', 'Widevine keys successfully decrypted by CDM.');
+            } catch (error) {
+                console.error('Shaka DRM load error:', error);
+                showToast('error', 'DRM Playback Error', `License authentication failed (Error code: ${error.code}).`);
+            }
+        }
+
+        const playHlsInTheater = playRegularStream;
+
+        async function resetPlayer() {
+            if (shakaPlayer) {
+                try {
+                    await shakaPlayer.destroy();
+                } catch (e) {
+                    console.error('Error destroying Shaka player:', e);
+                }
+                shakaPlayer = null;
+            }
+            videoElement.src = '';
+            videoElement.load();
+        }
+
+        function dismissDrmPanel() {
+            document.getElementById('drm-panel').style.display = 'none';
+            const playBtn = document.querySelector('.manifest-card .play-circle-btn');
+            if (playBtn) playBtn.click();
+        }
+
+        function closeTheater() {
+            resetPlayer();
+            document.getElementById('theater-modal').classList.remove('active');
+        }
+
+        // ── Utilities ─────────────────────────────────────────────────────
+        function copyText(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                showToast('success', 'Copied', 'Stream URL copied to clipboard.');
+            }).catch(() => {
+                showToast('error', 'Clipboard Error', 'Failed to copy.');
+            });
+        }
+
+        function showToast(type, title, message) {
+            const wrapper = document.getElementById('toast-wrapper');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            let icon = 'info';
+            if (type === 'success') icon = 'check-circle';
+            if (type === 'error') icon = 'alert-triangle';
+            toast.innerHTML = `
+                <i data-lucide="${icon}"></i>
+                <div class="toast-content">
+                    <strong style="display: block; margin-bottom: 2px;">${title}</strong>
+                    <span>${message}</span>
+                </div>
+                <button class="toast-close" onclick="this.parentElement.remove()">
+                    <i data-lucide="x" style="width: 14px; height: 14px;"></i>
+                </button>
+            `;
+            wrapper.appendChild(toast);
+            lucide.createIcons();
+            setTimeout(() => {
+                toast.style.animation = 'slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) reverse forwards';
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        }
+
+        function escapeHtml(unsafe) {
+            if (!unsafe) return '';
+            return unsafe.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
+
+        function escapeJs(str) {
+            if (!str) return '';
+            return str.replace(/'/g, "\\'").replace(/"/g, '\\"');
+        }
+
+        // ── LiveTV Free Streams Integration ───────────────────────────────
+        async function searchLiveTVMatches() {
+            const queryInput = document.getElementById('livetv-search-input');
+            const q = queryInput.value.trim();
+            if (!q) {
+                showToast('error', 'Search Term Required', 'Please enter a team name to search.');
+                return;
+            }
+
+            const resultsContainer = document.getElementById('livetv-search-results');
+            const streamsContainer = document.getElementById('livetv-streams-container');
+            
+            // Clear stream player container
+            streamsContainer.innerHTML = '';
+            resultsContainer.innerHTML = `
+                <div style="display: flex; justify-content: center; padding: 2rem;">
+                    <div class="spinner" style="width: 30px; height: 30px;"></div>
+                </div>
+            `;
+
+            try {
+                const res = await fetch(`${API_BASE}/api/livetv/search?q=${encodeURIComponent(q)}`);
+                if (!res.ok) {
+                    throw new Error('Failed to search matches.');
+                }
+                const events = await res.json();
+                resultsContainer.innerHTML = '';
+
+                if (events.length === 0) {
+                    resultsContainer.innerHTML = `
+                        <div style="color: var(--text-secondary); text-align: center; padding: 1.5rem; font-size: 0.9rem; background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 12px;">
+                            No live or upcoming matches found matching "${escapeHtml(q)}".
+                        </div>
+                    `;
+                    return;
+                }
+
+                const listWrapper = document.createElement('div');
+                listWrapper.style.cssText = 'display: flex; flex-direction: column; gap: 0.75rem; max-width: 600px;';
+
+                events.forEach(evt => {
+                    const matchCard = document.createElement('div');
+                    matchCard.className = 'manifest-card';
+                    matchCard.style.cssText = 'display: flex; align-items: center; justify-content: space-between; padding: 1rem; border-color: rgba(239, 68, 68, 0.25); background: rgba(239, 68, 68, 0.02);';
+                    
+                    const isLiveBadge = evt.isLive 
+                        ? `<span class="tag-badge live" style="margin-left: 0.5rem; animation: pulse 2s infinite;">🔴 LIVE</span>`
+                        : `<span class="tag-badge" style="margin-left: 0.5rem; background: rgba(255,255,255,0.05); color: var(--text-secondary);">Upcoming</span>`;
+
+                    matchCard.innerHTML = `
+                        <div style="min-width: 0; flex-grow: 1;">
+                            <div style="font-weight: 600; font-size: 0.95rem; color: white; display: flex; align-items: center;">
+                                ${escapeHtml(evt.title)}
+                                ${isLiveBadge}
+                            </div>
+                            <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px;">
+                                ID: ${escapeHtml(evt.eventId)} | Source: LiveTV
+                            </div>
+                        </div>
+                        <button class="btn btn-outline" onclick="loadLiveTVEventByUrl('${escapeJs(evt.url)}')" style="font-size: 0.75rem; padding: 0.4rem 0.9rem; border-color: var(--accent-orange); color: var(--text-primary);">
+                            <span>Load Streams</span>
+                        </button>
+                    `;
+                    listWrapper.appendChild(matchCard);
+                });
+
+                resultsContainer.appendChild(listWrapper);
+                showToast('success', 'Search Complete', `Found ${events.length} match(es).`);
+            } catch (err) {
+                console.error(err);
+                resultsContainer.innerHTML = `
+                    <div style="color: var(--accent-orange); text-align: center; padding: 2rem; font-size: 0.9rem;">
+                        Failed to fetch matches. Check server status.
+                    </div>
+                `;
+                showToast('error', 'Search Failed', err.message);
+            }
+        }
+
+        async function loadLiveTVEventByUrl(url) {
+            const container = document.getElementById('livetv-streams-container');
+            container.innerHTML = `
+                <div style="display: flex; justify-content: center; padding: 2rem;">
+                    <div class="spinner" style="width: 30px; height: 30px;"></div>
+                </div>
+            `;
+
+            try {
+                const res = await fetch(`${API_BASE}/api/livetv/event?url=${encodeURIComponent(url)}`);
+                if (!res.ok) {
+                    const err = await res.json().catch(() => ({}));
+                    throw new Error(err.error || 'Failed to fetch event streams.');
+                }
+
+                const event = await res.json();
+                renderLiveTVStreams(event);
+                showToast('success', 'Event Loaded', `Found ${event.streams.length} stream links.`);
+            } catch (err) {
+                console.error(err);
+                container.innerHTML = `
+                    <div style="color: var(--accent-orange); text-align: center; padding: 2rem; font-size: 0.9rem;">
+                        <i data-lucide="alert-triangle" style="vertical-align: middle; margin-right: 0.5rem;"></i>
+                        Failed to load streams for this match.
+                    </div>
+                `;
+                lucide.createIcons();
+                showToast('error', 'Load Failed', err.message);
+            }
+        }
+
+        function renderLiveTVStreams(event) {
+            const container = document.getElementById('livetv-streams-container');
+            container.innerHTML = '';
+
+            const eventInfo = document.createElement('div');
+            eventInfo.className = 'livetv-event-info';
+            
+            const streamsHtml = event.streams.map((stream, idx) => `
+                <div class="livetv-card" onclick="playLiveTVStream('${escapeJs(stream.channelId)}', '${escapeJs(event.title)} — Stream ${idx + 1}')">
+                    <i data-lucide="tv-2"></i>
+                    <strong style="color: white; font-size: 0.9rem;">Stream #${idx + 1}</strong>
+                    <div style="font-size: 0.75rem; color: var(--text-secondary);">
+                        Language: ${escapeHtml(stream.language.toUpperCase())}
+                    </div>
+                    <div class="tag-badge free" style="margin-top: 0.25rem;">Channel: ${escapeHtml(stream.channelId)}</div>
+                </div>
+            `).join('');
+
+            eventInfo.innerHTML = `
+                <div class="livetv-event-title">${escapeHtml(event.title)}</div>
+                <div class="livetv-event-meta">
+                    <span>🏆 ${escapeHtml(event.tournament || 'Live Match')}</span>
+                    <span>📅 ${escapeHtml(event.date)} ${escapeHtml(event.time)}</span>
+                </div>
+                <div class="livetv-grid">
+                    ${streamsHtml || '<div style="grid-column: 1/-1; color: var(--text-secondary);">No browser players found.</div>'}
+                </div>
+            `;
+
+            container.appendChild(eventInfo);
+            lucide.createIcons();
+        }
+
+        async function playLiveTVStream(channelId, title) {
+            const loading = document.getElementById('loading-screen');
+            const loaderText = document.getElementById('loading-text');
+            loaderText.textContent = "Resolving LiveTV stream manifest...";
+            loading.classList.add('active');
+
+            try {
+                const res = await fetch(`${API_BASE}/api/livetv/resolve?channel=${encodeURIComponent(channelId)}`);
+                if (!res.ok) throw new Error("Failed to resolve stream");
+                const data = await res.json();
+                
+                // Show theater modal
+                document.getElementById('theater-title-text').textContent = title;
+                document.getElementById('theater-title').textContent = title;
+                document.getElementById('theater-desc').textContent = "Free Live Stream resolved from LiveTV. Channel ID: " + channelId;
+                
+                document.getElementById('crypt-content-id').textContent = channelId;
+                document.getElementById('crypt-drm-status').textContent = 'Unencrypted (Bypassed DRM)';
+                document.getElementById('crypt-key-id').textContent = 'None';
+                
+                // Setup metadata badge
+                const metaBox = document.getElementById('theater-meta');
+                metaBox.innerHTML = `
+                    <span class="tag-badge" style="background: rgba(239,68,68,0.2); color: #ef4444;">🔴 LIVE STREAM</span>
+                    <span class="tag-badge free">Free</span>
+                `;
+                
+                // Render resolved streams
+                const manifestsBox = document.getElementById('theater-manifests');
+                manifestsBox.innerHTML = `
+                    <div class="manifest-card" style="border-color: rgba(16, 185, 129, 0.3); background: rgba(16, 185, 129, 0.05);">
+                        <div class="manifest-info">
+                            <span class="manifest-label hls" style="background: linear-gradient(135deg, #10b981, #059669);">FREE HLS</span>
+                            <div class="manifest-url" title="${escapeHtml(data.hlsUrl)}">${escapeHtml(data.hlsUrl)}</div>
+                        </div>
+                        <div class="manifest-actions">
+                            <button class="action-circle play-circle-btn" onclick="playRegularStream('${escapeJs(data.proxiedHlsUrl)}')" title="Load in player"><i data-lucide="play" style="width: 14px; height: 14px;"></i></button>
+                            <button class="action-circle" onclick="copyText('${escapeJs(data.hlsUrl)}')" title="Copy URL"><i data-lucide="copy" style="width: 14px; height: 14px;"></i></button>
+                        </div>
+                    </div>
+                `;
+                
+                // Hide DRM panel and alternative streams box
+                document.getElementById('drm-panel').style.display = 'none';
+                document.getElementById('alternative-streams-box').style.display = 'none';
+                
+                // Open theater modal
+                document.getElementById('theater-modal').classList.add('active');
+                
+                // Play stream
+                await playRegularStream(data.proxiedHlsUrl);
+                
+                showToast('success', 'Stream Resolved', `Now playing channel ${channelId}`);
+            } catch (err) {
+                console.error(err);
+                showToast('error', 'Resolve Failed', 'Could not resolve HLS stream from LiveTV.');
+            } finally {
+                loading.classList.remove('active');
+                lucide.createIcons();
+            }
+        }
+
+        // ── Search & display LiveTV streams inside player panel on DRM/blocked content ──
+        async function fetchAlternativeStreams(title) {
+            const box = document.getElementById('alternative-streams-box');
+            const container = document.getElementById('theater-alternative-streams');
+            
+            box.style.display = 'block';
+            container.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 0.5rem; color: var(--text-secondary); font-size: 0.8rem; padding: 0.5rem 0;">
+                    <div class="spinner" style="width: 16px; height: 16px; border-width: 2px;"></div>
+                    <span>Searching for free streams on LiveTV...</span>
+                </div>
+            `;
+            
+            try {
+                const query = getSearchQuery(title);
+                console.log(`[Alternative Streams] Searching for: "${query}" (original: "${title}")`);
+                
+                const searchRes = await fetch(`${API_BASE}/api/livetv/search?q=${encodeURIComponent(query)}`);
+                if (!searchRes.ok) throw new Error();
+                
+                const events = await searchRes.json();
+                if (events.length === 0) {
+                    container.innerHTML = '<div style="color: var(--text-muted); font-size: 0.8rem; padding: 0.5rem 0;">No alternative free streams found for this match.</div>';
+                    return;
+                }
+                
+                // Get streams for the first matching event
+                const event = events[0];
+                container.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 0.5rem; color: var(--accent-success); font-size: 0.8rem; padding: 0.5rem 0;">
+                        <div class="status-pulse" style="width: 6px; height: 6px; background-color: var(--accent-success); box-shadow: 0 0 6px var(--accent-success);"></div>
+                        <span>Found match: <strong>${escapeHtml(event.title)}</strong>. Resolving streams...</span>
+                    </div>
+                `;
+                
+                const eventRes = await fetch(`${API_BASE}/api/livetv/event?url=${encodeURIComponent(event.url)}`);
+                if (!eventRes.ok) throw new Error();
+                
+                const eventData = await eventRes.json();
+                container.innerHTML = '';
+                
+                if (eventData.streams.length === 0) {
+                    container.innerHTML = '<div style="color: var(--text-muted); font-size: 0.8rem; padding: 0.5rem 0;">Match found, but no stream channels are online.</div>';
+                    return;
+                }
+                
+                eventData.streams.forEach((stream, idx) => {
+                    const card = document.createElement('div');
+                    card.className = 'manifest-card';
+                    card.style.borderColor = 'rgba(239, 68, 68, 0.3)';
+                    card.style.background = 'rgba(239, 68, 68, 0.03)';
+                    card.innerHTML = `
+                        <div class="manifest-info">
+                            <span class="manifest-label hls" style="background: linear-gradient(135deg, #ef4444, #f97316);">🔴 FREE STREAM #${idx + 1} (${escapeHtml(stream.language.toUpperCase())})</span>
+                            <div class="manifest-url" style="margin-top: 4px;">Channel: ${escapeHtml(stream.channelId)} (LiveTV)</div>
+                        </div>
+                        <div class="manifest-actions">
+                            <button class="action-circle play-circle-btn" onclick="playLiveTVStream('${escapeJs(stream.channelId)}', '${escapeJs(event.title)} — Stream ${idx + 1}')" title="Play Stream"><i data-lucide="play" style="width: 14px; height: 14px;"></i></button>
+                        </div>
+                    `;
+                    container.appendChild(card);
+                });
+                lucide.createIcons();
+                
+            } catch (err) {
+                console.error('[Alternative Streams] Error:', err);
+                container.innerHTML = '<div style="color: var(--accent-orange); font-size: 0.8rem; padding: 0.5rem 0;">Failed to fetch alternative streams.</div>';
+            }
+        }
+        
+        function getSearchQuery(title) {
+            let clean = title.replace(/\([^)]*\)/g, '').replace(/\[[^\]]*\]/g, '');
+            const separators = [' vs ', ' – ', ' - ', ' v '];
+            for (const sep of separators) {
+                if (clean.toLowerCase().includes(sep)) {
+                    const teams = clean.split(new RegExp(sep, 'i'));
+                    if (teams.length >= 2) {
+                        const team1 = teams[0].trim().split(/\s+/)[0];
+                        const team2 = teams[1].trim().split(/\s+/)[0];
+                        return `${team1} ${team2}`;
+                    }
+                }
+            }
+            return clean.trim();
+        }
+    </script>
+</body>
+</html>
